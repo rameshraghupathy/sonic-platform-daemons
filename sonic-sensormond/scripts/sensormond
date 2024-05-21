@@ -198,10 +198,26 @@ class VoltageUpdater(SensorUpdater):
         '''
         self.log_debug("Start voltage update")
 
+        remove_module = ""
+
+        if self.chassis.is_smartswitch():
+            for module_index, module in enumerate(self.chassis.get_all_modules()):
+                module_name = try_get(module.get_name, 'Module {}'.format(module_index))
+                module = self.chassis.get_module(module_index)
+                if module is None:
+                    continue
+                oper_status = module.get_oper_status()
+                if oper_status == "Offline":
+                    remove_module = module_name
+
         sensor_list = self.fs_sensors + self.chassis.get_all_voltage_sensors()
 
         for index, voltage_sensor in enumerate(sensor_list):
-            self._refresh_voltage_status(CHASSIS_INFO_KEY, voltage_sensor, index)
+            name = try_get(voltage_sensor.get_name, '{} voltage_sensor {}'.format("", index + 1))
+            if remove_module != "" and remove_module in name:
+                self._remove_voltage_sensor_from_db(voltage_sensor, "", index)
+            else:
+                self._refresh_voltage_status(CHASSIS_INFO_KEY, voltage_sensor, index)
 
         if self.is_chassis_system:
             available_voltage_sensors = set()
