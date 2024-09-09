@@ -765,6 +765,15 @@ class SmartSwitchModuleUpdater(ModuleUpdater):
             self.midplane_table.set(module_key, fvs)
 
     def module_down_chassis_db_cleanup(self):
+        # cleanup CHASSIS_STATE_DB
+        chassis_state_db = daemon_base.db_connect("CHASSIS_STATE_DB")
+
+        for module_index in range(0, self.num_modules):
+            name = try_get(self.chassis.get_module(module_index).get_name)
+            if self.get_module_admin_status(name) != 'up':
+                key = "*|" + name
+                chassis_state_db.delete(key)
+
         return
 
 
